@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Camera2API</string>
+
+    <string name="video_button">Video Record Button</string>
+
+    <string name="photo_button">Photo Capture Button</string>
+</resources>
