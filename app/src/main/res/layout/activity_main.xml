@@ -7,6 +7,13 @@
     tools:context="com.volkan.camera2api.MainActivity">
 
 
+    <TextureView
+        android:id="@+id/textureView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
     <ImageButton
         android:id="@+id/imageButtonPhoto"
         android:layout_width="70dp"
@@ -38,4 +45,5 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.983"
         app:srcCompat="@android:drawable/presence_video_online" />
+
 </android.support.constraint.ConstraintLayout>
