@@ -25,6 +25,7 @@ import android.util.SparseIntArray;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
+import android.widget.ImageButton;
 import android.widget.Toast;
 
 import java.util.ArrayList;
@@ -88,6 +89,9 @@ public class MainActivity extends AppCompatActivity {
     private String cameraId;
     private Size previewSize;
     private CaptureRequest.Builder builder;
+    private ImageButton recordImageButoon;
+    private boolean recording = false;
+
     private static SparseIntArray ORIENTATIONS = new SparseIntArray();
 
     static {
@@ -111,6 +115,19 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         textureView = findViewById(R.id.textureView);
+        recordImageButoon = findViewById(R.id.imageButtonVideo);
+        recordImageButoon.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (recording) {
+                    recording = false;
+                    recordImageButoon.setImageResource(android.R.drawable.presence_video_online);
+                } else {
+                    recording = true;
+                    recordImageButoon.setImageResource(android.R.drawable.presence_video_busy);
+                }
+            }
+        });
     }
 
     @Override
