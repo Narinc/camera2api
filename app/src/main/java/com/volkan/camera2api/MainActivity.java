@@ -6,6 +6,7 @@ import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CameraManager;
+import android.hardware.camera2.params.StreamConfigurationMap;
 import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -14,10 +15,16 @@ import android.support.annotation.RequiresApi;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.util.Size;
 import android.util.SparseIntArray;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 
 @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
 public class MainActivity extends AppCompatActivity {
@@ -69,6 +76,7 @@ public class MainActivity extends AppCompatActivity {
     private HandlerThread backgroundHandlerThread;
     private Handler backgroundHandler;
     private String cameraId;
+    private Size previewSize;
     private static SparseIntArray ORIENTATIONS = new SparseIntArray();
 
     static {
@@ -76,6 +84,14 @@ public class MainActivity extends AppCompatActivity {
         ORIENTATIONS.append(Surface.ROTATION_90, 90);
         ORIENTATIONS.append(Surface.ROTATION_180, 180);
         ORIENTATIONS.append(Surface.ROTATION_270, 270);
+    }
+
+    private static class CompareSizeByArea implements Comparator<Size> {
+
+        @Override
+        public int compare(Size lhs, Size rhs) {
+            return Long.signum(lhs.getWidth() * lhs.getHeight() / rhs.getWidth() * rhs.getHeight());
+        }
     }
 
     @Override
@@ -141,6 +157,7 @@ public class MainActivity extends AppCompatActivity {
                         == CameraCharacteristics.LENS_FACING_FRONT) {
                     continue;
                 }
+                StreamConfigurationMap map = cameraCharacteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
                 int deviceOrientation = getWindowManager().getDefaultDisplay().getRotation();
                 int totalRotation = sensorIdDeviceRotation(cameraCharacteristics, deviceOrientation);
                 boolean swapRotation = totalRotation == 90 | totalRotation == 270;
@@ -150,6 +167,7 @@ public class MainActivity extends AppCompatActivity {
                     rotatedWidth = height;
                     rotatedHeight = width;
                 }
+                previewSize = chooseOptimalSize(map.getOutputSizes(SurfaceTexture.class), rotatedWidth, rotatedHeight);
                 this.cameraId = cameraId;
                 return;
             }
@@ -186,5 +204,20 @@ public class MainActivity extends AppCompatActivity {
         int sensorOrientation = cameraCharacteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
         deviceOrientation = ORIENTATIONS.get(deviceOrientation);
         return (sensorOrientation + deviceOrientation + 360) % 360;
+    }
+
+    private static Size chooseOptimalSize(Size[] choices, int width, int height) {
+        List<Size> bigEnough = new ArrayList<Size>();
+        for (Size option : choices) {
+            if (option.getHeight() == option.getWidth() * height / width
+                    && option.getWidth() >= width
+                    && option.getHeight() >= height) {
+                bigEnough.add(option);
+            }
+        }
+
+        if (bigEnough.size() > 0) {
+            return Collections.min(bigEnough, new CompareSizeByArea());
+        } else return choices[0];
     }
 }
