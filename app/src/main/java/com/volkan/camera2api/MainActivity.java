@@ -1,6 +1,8 @@
 package com.volkan.camera2api;
 
+import android.Manifest;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCharacteristics;
@@ -12,6 +14,7 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.support.annotation.NonNull;
 import android.support.annotation.RequiresApi;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -20,6 +23,7 @@ import android.util.SparseIntArray;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
+import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -29,6 +33,7 @@ import java.util.List;
 @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
+    private static final int CAMERA_PERMISSION_CODE = 0;
     private TextureView textureView;
     private TextureView.SurfaceTextureListener surfaceTextureListener = new TextureView.SurfaceTextureListener() {
         @Override
@@ -36,6 +41,7 @@ public class MainActivity extends AppCompatActivity {
             Log.d(TAG, "onSurfaceTextureAvailable: yes, it's available! width : " + width + " height : " + height);
 
             setupCamera(width, height);
+            connectToCamera();
         }
 
         @Override
@@ -59,6 +65,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onOpened(@NonNull CameraDevice cameraDevice) {
             MainActivity.this.cameraDevice = cameraDevice;
+            Toast.makeText(getApplicationContext(), "Kamera bağlantısı yapıldı!", Toast.LENGTH_SHORT).show();
         }
 
         @Override
@@ -110,8 +117,19 @@ public class MainActivity extends AppCompatActivity {
 
         if (textureView.isAvailable()) {
             setupCamera(textureView.getWidth(), textureView.getHeight());
+            connectToCamera();
         } else {
             textureView.setSurfaceTextureListener(surfaceTextureListener);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == CAMERA_PERMISSION_CODE) {
+            if (grantResults[0] != PackageManager.PERMISSION_GRANTED) {
+                Toast.makeText(getApplicationContext(), "Kamera izni olmadan kamerayı açamıyorum", Toast.LENGTH_SHORT).show();
+            }
         }
     }
 
@@ -171,6 +189,25 @@ public class MainActivity extends AppCompatActivity {
                 this.cameraId = cameraId;
                 return;
             }
+        } catch (CameraAccessException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void connectToCamera() {
+        CameraManager cameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
+        try {
+            if (Build.VERSION.SDK_INT > Build.VERSION_CODES.M) {
+                if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                    cameraManager.openCamera(cameraId, stateCallback, backgroundHandler);
+                } else {
+                    if (shouldShowRequestPermissionRationale(Manifest.permission.CAMERA)) {
+                        Log.d(TAG, "connectToCamera: Video App required access to camera");
+                    }
+                    requestPermissions(new String[]{Manifest.permission.CAMERA}, CAMERA_PERMISSION_CODE);
+                }
+            } else
+                cameraManager.openCamera(cameraId, stateCallback, backgroundHandler);
         } catch (CameraAccessException e) {
             e.printStackTrace();
         }
