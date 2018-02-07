@@ -7,6 +7,8 @@ import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CameraManager;
 import android.os.Build;
+import android.os.Handler;
+import android.os.HandlerThread;
 import android.support.annotation.NonNull;
 import android.support.annotation.RequiresApi;
 import android.support.v7.app.AppCompatActivity;
@@ -62,6 +64,8 @@ public class MainActivity extends AppCompatActivity {
             MainActivity.this.cameraDevice = null;
         }
     };
+    private HandlerThread backgroundHandlerThread;
+    private Handler backgroundHandler;
     private String cameraId;
 
     @Override
@@ -75,6 +79,9 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+
+        startBackgroundThread();
+
         if (textureView.isAvailable()) {
             setupCamera(textureView.getWidth(), textureView.getHeight());
         } else {
@@ -110,6 +117,7 @@ public class MainActivity extends AppCompatActivity {
         super.onPause();
 
         closeCamera();
+        startBackgroundThread();
     }
 
     private void setupCamera(int width, int height) {
@@ -135,6 +143,23 @@ public class MainActivity extends AppCompatActivity {
         if (cameraDevice != null) {
             cameraDevice.close();
             cameraDevice = null;
+        }
+    }
+
+    private void startBackgroundThread() {
+        backgroundHandlerThread = new HandlerThread("Camera2VideoImage");
+        backgroundHandlerThread.start();
+        backgroundHandler = new Handler(backgroundHandlerThread.getLooper());
+    }
+
+    private void stopBackgroundThread() {
+        backgroundHandlerThread.quitSafely();
+        try {
+            backgroundHandlerThread.join();
+            backgroundHandlerThread = null;
+            backgroundHandler = null;
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
     }
 }
